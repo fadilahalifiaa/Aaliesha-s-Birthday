@@ -134,9 +134,26 @@ footer{padding:26px 16px 40px;text-align:center;font-size:1rem;background:var(--
 .cnt{position:absolute;left:12px;top:-16px;background:var(--ungu);color:#fff;border:2px solid var(--tinta);border-radius:99px;padding:0 12px;font-size:1rem;z-index:4}
 :focus-visible{outline:3px solid var(--ungu);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+
+/* layar pembuka + musik */
+body.kunci{overflow:hidden}
+.awal{position:fixed;inset:0;z-index:600;display:grid;place-items:center;text-align:center;padding:24px;cursor:pointer;background:#FFF3BE;background-image:radial-gradient(circle,rgba(244,143,184,.3) 0 3px,transparent 4px),radial-gradient(circle,rgba(169,139,214,.28) 0 3px,transparent 4px);background-size:46px 46px;background-position:0 0,23px 23px;transition:opacity .9s ease,visibility .9s}
+.awal.tutup{opacity:0;visibility:hidden;pointer-events:none}
+.awal b{display:block;font-family:var(--disp);font-weight:400;font-size:clamp(2.6rem,12vw,4.2rem);line-height:1.05;color:#D63A8E;-webkit-text-stroke:.1em #fff;paint-order:stroke fill;text-shadow:.05em .06em 0 rgba(74,37,99,.3)}
+.awal span{display:inline-block;margin-top:26px;padding:8px 22px;border:2px solid var(--tinta);border-radius:99px;background:var(--butter);box-shadow:0 4px 0 var(--tinta);animation:denyut 1.6s ease-in-out infinite}
+@keyframes denyut{50%{transform:scale(1.07)}}
+.musik{position:fixed;right:14px;bottom:14px;z-index:350;width:46px;height:46px;border-radius:50%;border:2px solid var(--tinta);background:var(--pink);font-size:1.4rem;line-height:1;box-shadow:0 3px 0 var(--tinta)}
+.musik:active{translate:0 3px;box-shadow:none}
+.musik[hidden]{display:none}
+.musik.off{background:#E9D9F5;opacity:.8}
 </style>
 </head>
-<body>
+<body class="kunci">
+
+<div class="awal" id="awal" role="button" tabindex="0" aria-label="Tap to open">
+  <div><b>Happy 17th,<br>Aaliesha!</b><span>Tap to open</span></div>
+</div>
+<button class="musik" id="musik" type="button" aria-label="Putar atau jeda musik" hidden>&#9835;</button>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -186,7 +203,7 @@ footer{padding:26px 16px 40px;text-align:center;font-size:1rem;background:var(--
   <h2>Aaliesha's Gallery</h2>
   <div class="kartu2">
     <div class="cat" id="cat" role="button" tabindex="0" aria-label="Kucing">
-      <span class="bub">Ini Ozzie</span>
+      <span class="bub">meow~</span>
       <svg viewBox="0 -40 180 140">
         <clipPath id="hc"><ellipse cx="90" cy="92" rx="68" ry="56"/></clipPath>
         <g stroke="#4A2563" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -261,6 +278,7 @@ footer{padding:26px 16px 40px;text-align:center;font-size:1rem;background:var(--
    base = lokasi foto TANPA ekstensi (otomatis cari jpeg/jpg/png/webp).
    nama & cerita boleh diisi, boleh dikosongkan. */
 const UCAPAN = "Happy birthday. May your life be as long as a poem, and your happiness as eternal as the most beautiful prose. Keep being a pen that writes goodness.";
+const LAGU = { file: 'music/lagu.mp3', mulai: 110, selesai: 190 }; /* mulai & selesai = detik awal dan akhir potongan lagu (selesai: 0 = sampai lagu habis) */
 const FOTO = [ /* 6 foto di BOX */
   { base: 'images/foto7',  nama: '', cerita: '' },
   { base: 'images/foto8',  nama: '', cerita: '' },
@@ -273,8 +291,8 @@ const KARTU = [ /* 6 foto di "Aaliesha's Gallery" */
   { base: 'images/foto1', nama: '', cerita: '' },
   { base: 'images/foto2', nama: '', cerita: '' },
   { base: 'images/foto3', nama: '', cerita: '' },
-  { base: 'images/foto5', nama: '', cerita: '' },
   { base: 'images/foto4', nama: '', cerita: '' },
+  { base: 'images/foto5', nama: '', cerita: '' },
   { base: 'images/foto6', nama: '', cerita: '' }
 ];
 /* ========================= */
@@ -449,6 +467,22 @@ function toggleSurat() {
 env.addEventListener('click', toggleSurat); key(env, toggleSurat);
 const bukaTul = () => { const b = tul.classList.toggle('buka'); if (b) { const r = tul.getBoundingClientRect(); pecah(r.left + r.width / 2, r.top + r.height * .3, 8); } };
 tul.addEventListener('click', bukaTul); key(tul, bukaTul);
+
+/* layar pembuka + musik (autoplay baru boleh setelah ada tap) */
+const awal = $('#awal'), tmb = $('#musik');
+const lagu = new Audio(LAGU.file); lagu.preload = 'auto'; lagu.volume = .7;
+lagu.addEventListener('timeupdate', () => { if (LAGU.selesai && lagu.currentTime >= LAGU.selesai) lagu.currentTime = LAGU.mulai; });
+lagu.addEventListener('ended', () => { lagu.currentTime = LAGU.mulai; lagu.play().catch(() => {}); });
+lagu.addEventListener('error', () => { tmb.hidden = true; });
+const setTmb = on => { tmb.classList.toggle('off', !on); tmb.textContent = on ? '\u266B' : '\u2715'; };
+const masuk = () => {
+  if (awal.classList.contains('tutup')) return;
+  awal.classList.add('tutup'); document.body.classList.remove('kunci');
+  const mulaiMusik = () => { lagu.currentTime = LAGU.mulai; lagu.play().then(() => { tmb.hidden = false; setTmb(true); }).catch(() => {}); };
+  if (lagu.readyState >= 1) mulaiMusik(); else { lagu.addEventListener('loadedmetadata', mulaiMusik, { once: true }); lagu.load(); }
+};
+awal.addEventListener('click', masuk); key(awal, masuk);
+tmb.addEventListener('click', () => { if (lagu.paused) { lagu.play(); setTmb(true); } else { lagu.pause(); setTmb(false); } });
 })();
 </script>
 </body>
